@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>人工流产辅助决策工具</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+    .container { max-width: 600px; margin: 2rem auto; background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { text-align: center; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .buttons { display: flex; justify-content: space-between; margin-top: 1rem; }
+    button { padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; }
+    button.primary { background: #007bff; color: white; }
+    button.secondary { background: #ccc; color: #333; }
+    label { display: flex; align-items: center; margin: 0.6rem 0; }
+    input[type="text"], select { flex: 1; padding: 0.5rem; margin-left: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+    input[type="checkbox"] { margin-right: 0.5rem; }
+    fieldset { border: 1px solid #ccc; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; }
+    legend { font-weight: bold; padding: 0 0.4rem; }
+    .summary, .info { padding: 1rem; border-radius: 4px; margin-top: 1rem; }
+    .summary { background: #eef; }
+    .info { background: #e0f7fa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>人工流产辅助决策工具</h1>
+    <form id="decisionForm" onsubmit="return false;">
+      <div class="step active" id="step-1">
+        <h2>1. 早孕关爱与健康宣教</h2>
+        <div class="info">
+          <p>您是否正在犹豫是否终止妊娠？本工具可协助您梳理身体健康状况与个人偏好，帮助您做出更符合自身情况的决定。</p>
+          <ul>
+            <li>药物流产与手术流产均可能产生短期副作用，如出血、感染风险、疼痛等。</li>
+            <li>反复流产可能对未来生育产生一定影响，特别是合并宫腔操作史者。</li>
+            <li>早期干预、尽早评估有助于降低风险。</li>
+            <li>如决定继续妊娠，请尽早建立产检计划，获得心理与营养支持。</li>
+          </ul>
+        </div>
+        <label><input type="checkbox" id="ack" required /> 我已阅读并理解上述内容</label>
+      </div>
+
+      <div class="step" id="step-2">
+        <h2>2. 基本信息</h2>
+        <label>年龄（岁）：</label>
+        <input type="text" id="age" required />
+        <label>孕周（周）：</label>
+        <input type="text" id="gestation" required />
+        <fieldset>
+          <legend>既往孕产史</legend>
+          <label><input type="checkbox" name="historyPreg" value="剖宫产"> 剖宫产</label>
+          <label><input type="checkbox" name="historyPreg" value="流产并发症"> 流产并发症</label>
+        </fieldset>
+        <fieldset>
+          <legend>健康状况（多选）</legend>
+           <label><input type="checkbox" name="healthStatus" value="生殖道感染"> 生殖道感染</label>
+          <label><input type="checkbox" name="healthStatus" value="凝血功能异常"> 凝血功能异常</label>
+        </fieldset>
+      </div>
+
+      <div class="step" id="step-3">
+        <h2>3. 风险评估</h2>
+        <div id="riskSummary">（系统评估中...）</div>
+      </div>
+
+      <div class="step" id="step-4">
+        <h2>4. 价值澄清</h2>
+        <p>请对下列方面进行打分（1=不重要，5=非常重要）</p>
+        <label>疼痛承受度：
+          <select name="valPain" required>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+        </label>
+        <label>隐私需求：
+          <select name="valPrivacy" required>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+        </label>
+        <label>恢复速度：
+          <select name="valRecovery" required>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+        </label>
+        <label>费用考量：
+          <select name="valCost" required>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+        </label>
+        <label>医疗便捷：
+          <select name="valAccess" required>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="step" id="step-5">
+        <h2>5. 偏好权衡</h2>
+        <div class="summary" id="preferenceSummary">（正在计算...）</div>
+      </div>
+
+      <div class="step" id="step-6">
+        <h2>6. 决策结果</h2>
+        <div class="summary" id="decisionResult">推荐方案：<strong id="recommendation"></strong></div>
+      </div>
+
+      <div class="buttons">
+        <button type="button" class="secondary" onclick="nextPrev(-1)">上一步</button>
+        <button type="button" class="primary" onclick="nextPrev(1)">下一步</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    let currentStep = 1;
+    showStep(currentStep);
+
+    function showStep(n) {
+      const steps = document.querySelectorAll('.step');
+      steps.forEach(s => s.classList.remove('active'));
+      document.getElementById('step-' + n).classList.add('active');
+
+      document.querySelector('.secondary').disabled = (n === 1);
+      document.querySelector('.primary').innerText = (n === 6 ? '完成' : '下一步');
+    }
+
+    function nextPrev(n) {
+      if ((currentStep === 1 && n === -1) || (currentStep === 6 && n === 1)) return;
+      if (n === 1 && currentStep === 1 && !document.getElementById('ack').checked) {
+        alert('请先勾选已阅读声明');
+        return;
+      }
+      // 放宽校验，仅判断必填项是否填写（不校验格式）
+      if (n === 1) {
+        const currentStepElem = document.getElementById('step-' + currentStep);
+        const inputs = currentStepElem.querySelectorAll('input, select');
+        for (const input of inputs) {
+          if (input.hasAttribute('required')) {
+            if (input.type === 'checkbox') {
+              if (!input.checked) {
+                alert('请完整填写当前步骤所有必填项');
+                return;
+              }
+            } else {
+              if (!input.value.trim()) {
+                alert('请完整填写当前步骤所有必填项');
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      currentStep += n;
+
+      if (currentStep === 3) evaluateRisk();
+      if (currentStep === 5) calculatePreference();
+      if (currentStep === 6) showRecommendation();
+
+      showStep(currentStep);
+    }
+
+    function evaluateRisk() {
+      const gest = parseFloat(document.getElementById('gestation').value) || 0;
+      const age = parseInt(document.getElementById('age').value) || 0;
+      const health = Array.from(document.querySelectorAll("input[name='healthStatus']:checked")).map(i => i.value);
+      let risk = gest > 10 ? '孕周较高，手术风险增加。' : '孕周适中，药流及手术均可行。';
+      if (health.includes('凝血功能异常')) risk = '存在凝血异常，建议在医院内进行手术。';
+      else if (health.includes('生殖道感染')) risk = '存在生殖道感染，需先治疗再考虑流产方式。';
+      else if (age < 18 || age > 40) risk = '您当前年龄为' + age + '岁，根据中国指南不推荐药物流产。';
+      document.getElementById('riskSummary').innerText = risk;
+    }
+
+    function calculatePreference() {
+      const weights = ['valPain', 'valPrivacy', 'valRecovery', 'valCost', 'valAccess'].map(n => {
+        const el = document.querySelector(`select[name="${n}"]`);
+        return el ? parseInt(el.value) : 3;
+      });
+
+      const scoreDrug = weights[1] + weights[2] + weights[3];  // 恢复速度，隐私，费用
+      const scoreSurg = weights[0] + weights[4]; // 疼痛承受度，医疗便捷
+
+      const summary = `药物流产得分：${scoreDrug}；手术流产得分：${scoreSurg}`;
+      document.getElementById('preferenceSummary').innerText = summary;
+    }
+
+    function showRecommendation() {
+      const text = document.getElementById('preferenceSummary').innerText;
+      const nums = text.match(/得分：(\d+)；.*得分：(\d+)/);
+      const scoreDrug = nums ? parseInt(nums[1]) : 0;
+      const scoreSurg = nums ? parseInt(nums[2]) : 0;
+      const age = parseInt(document.getElementById('age').value);
+
+      let recommendation = '';
+      if (age < 18 || age > 40) {
+        recommendation = '由于您年龄为' + age + '岁，药物流产不推荐，需进行手术流产。';
+      } else {
+        if(scoreDrug === scoreSurg) {
+          recommendation = '药物流产和手术流产得分相近，建议结合医生评估做选择。';
+        } else if(scoreDrug > scoreSurg) {
+          recommendation = '推荐药物流产。';
+        } else {
+          recommendation = '推荐手术流产。';
+        }
+      }
+
+      document.getElementById('recommendation').innerText = recommendation;
+    }
+  </script>
+</body>
+</html>
+
