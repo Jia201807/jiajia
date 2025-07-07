@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>避孕方式辅助决策工具</title>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
+    .container { max-width: 700px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1, h2 { text-align: center; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .buttons { display: flex; justify-content: space-between; margin-top: 2rem; }
+    button { padding: 0.7rem 1.4rem; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    button.primary { background: #007bff; color: white; }
+    button.secondary { background: #ccc; color: #333; }
+    label { display: block; margin: 1rem 0 0.5rem; }
+    input[type="text"], select { width: 100%; padding: 0.5rem; margin-top: 0.3rem; border: 1px solid #ccc; border-radius: 4px; }
+    input[type="checkbox"] { margin-right: 0.5rem; }
+    .info, .summary { background: #eef; padding: 1rem; border-radius: 8px; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>避孕方式辅助决策工具</h1>
+    <form id="form" onsubmit="return false">
+      <!-- Step 1 -->
+      <div class="step active" id="step-1">
+        <h2>1. 健康宣教</h2>
+        <div class="info">
+          <p>请了解以下信息：</p>
+          <ul>
+            <li>“安全期法”和“体外排精”意外怀孕率高，不推荐。</li>
+            <li>哺乳期并非可靠避孕方式，月经恢复后避孕失败率更高。</li>
+            <li>短效避孕药需要每天服用，漏服可能失效。</li>
+            <li>宫内节育器（IUD）、皮下埋植属于高效、可逆的避孕方式。</li>
+          </ul>
+        </div>
+        <label><input type="checkbox" id="ack" required> 我已阅读并理解上述内容</label>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step" id="step-2">
+        <h2>2. 个人情况</h2>
+        <label>年龄：<input type="text" id="age" required></label>
+        <label>是否哺乳期：<select id="nursing"><option>否</option><option>是</option></select></label>
+        <label>是否计划一年内怀孕：<select id="planPreg"><option>否</option><option>是</option></select></label>
+        <label>是否能每天服药：<select id="dailyPill"><option>能</option><option>不能</option></select></label>
+        <label>能否接受月经不规律变化：<select id="irregular"><option>能</option><option>不能</option></select></label>
+        <label>是否排斥激素类方法：<select id="hormone"><option>否</option><option>是</option><option>无所谓</option></select></label>
+        <label>是否需要高隐私避孕：<select id="privacy"><option>否</option><option>是</option></select></label>
+        <label>是否可接受宫内操作：<select id="iudAccept"><option>否</option><option>是</option></select></label>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step" id="step-3">
+        <h2>3. 价值澄清</h2>
+        <label>避孕效果稳定性：<select id="valEffect"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+        <label>使用方便程度：<select id="valEase"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+        <label>身体干预小：<select id="valIntrusion"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+        <label>隐私性强：<select id="valPrivate"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+        <label>费用考量：<select id="valCost"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step" id="step-4">
+        <h2>4. 推荐结果</h2>
+        <div class="summary" id="recommendation">正在生成推荐...</div>
+      </div>
+
+      <div class="buttons">
+        <button type="button" class="secondary" onclick="nextPrev(-1)">上一步</button>
+        <button type="button" class="primary" onclick="nextPrev(1)">下一步</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    let currentStep = 1;
+    showStep(currentStep);
+
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+      document.getElementById('step-' + n).classList.add('active');
+    }
+
+    function nextPrev(n) {
+      if (n === 1 && currentStep === 1 && !document.getElementById('ack').checked) {
+        alert('请阅读并同意健康宣教内容');
+        return;
+      }
+      currentStep += n;
+      if (currentStep < 1) currentStep = 1;
+      if (currentStep > 4) currentStep = 4;
+      if (currentStep === 4) calculateRecommendation();
+      showStep(currentStep);
+    }
+
+    function calculateRecommendation() {
+      const age = parseInt(document.getElementById('age').value);
+      const dailyPill = document.getElementById('dailyPill').value;
+      const hormone = document.getElementById('hormone').value;
+      const iud = document.getElementById('iudAccept').value;
+      const planPreg = document.getElementById('planPreg').value;
+
+      let result = '';
+      if (planPreg === '是') {
+        result = '建议使用短效避孕方法（如避孕套或短效避孕药），避免长期避孕方式影响近期生育计划。';
+      } else if (hormone === '是') {
+        result = '建议选择非激素类方法，如宫内节育器（铜环）或避孕套。';
+      } else if (dailyPill === '不能') {
+        if (iud === '是') {
+          result = '推荐宫内节育器（IUD）或皮下埋植，避孕效果高且不需每日服药。';
+        } else {
+          result = '推荐避孕贴、注射剂等长效激素避孕方法。';
+        }
+      } else {
+        result = '短效口服避孕药适合您，使用方便且效果可靠。如希望更长效方案，可考虑宫内节育器。';
+      }
+
+      result += '<br><strong>⚠ 提示：</strong>不推荐安全期避孕法、体外排精法，失败率高、风险大。';
+      document.getElementById('recommendation').innerHTML = result;
+    }
+  </script>
+</body>
+</html>
